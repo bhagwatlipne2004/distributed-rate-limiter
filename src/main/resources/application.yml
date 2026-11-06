@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: distributed-rate-limiter
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      access: unrestricted
+
+rate-limiter:
+  redis:
+    failure-strategy: fail-open
