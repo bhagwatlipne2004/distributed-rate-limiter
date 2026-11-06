@@ -1,0 +1,189 @@
+
+{
+  "info": {
+    "name": "Distributed Rate Limiter API",
+    "description": "Automated tests for the Redis-backed distributed Token Bucket rate limiter. Includes cross-instance rate-limit validation.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "secondBaseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "userId",
+      "value": "postman-distributed-test"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Allowed Request - App 1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-User-Id",
+            "value": "{{userId}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/resource"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('First request is allowed', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Allowed Request - App 1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-User-Id",
+            "value": "{{userId}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/resource"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Second request is allowed', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Allowed Request - App 1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-User-Id",
+            "value": "{{userId}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/resource"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Third request is allowed', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Allowed Request - App 1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-User-Id",
+            "value": "{{userId}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/resource"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Fourth request is allowed', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Allowed Request - App 1",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-User-Id",
+            "value": "{{userId}}"
+          }
+        ],
+        "url": "{{baseUrl}}/api/resource"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Fifth request is allowed', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Rejected Request - App 2",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-User-Id",
+            "value": "{{userId}}"
+          }
+        ],
+        "url": "{{secondBaseUrl}}/api/resource"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Sixth request is rejected with HTTP 429', function () {",
+              "    pm.response.to.have.status(429);",
+              "});",
+              "",
+              "pm.test('Retry-After header is present', function () {",
+              "    pm.expect(pm.response.headers.has('Retry-After')).to.be.true;",
+              "});",
+              "",
+              "pm.test('Rate-limit headers are present', function () {",
+              "    pm.expect(pm.response.headers.has('X-RateLimit-Limit')).to.be.true;",
+              "    pm.expect(pm.response.headers.has('X-RateLimit-Remaining')).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
