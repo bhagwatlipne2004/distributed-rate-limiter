@@ -13,17 +13,50 @@ local capacity = tonumber(ARGV[1])
 local refill_rate = tonumber(ARGV[2])
 local request_cost = tonumber(ARGV[3])
 
--- Validate arguments
-if not capacity or capacity <= 0 then
+-- Maximum supported Redis key expiration: 30 days
+local MAX_TTL = 2592000
+local MIN_TTL = 3600
+local TTL_SAFETY_MARGIN = 60
+
+-- Validate bucket capacity
+if not capacity or
+   capacity <= 0 or
+   capacity == math.huge or
+   capacity == -math.huge or
+   capacity ~= capacity then
+
     return redis.error_reply("Invalid bucket capacity")
 end
 
-if not refill_rate or refill_rate <= 0 then
+-- Validate refill rate
+if not refill_rate or
+   refill_rate <= 0 or
+   refill_rate == math.huge or
+   refill_rate == -math.huge or
+   refill_rate ~= refill_rate then
+
     return redis.error_reply("Invalid refill rate")
 end
 
-if not request_cost or request_cost <= 0 or request_cost > capacity then
+-- Validate request cost
+if not request_cost or
+   request_cost <= 0 or
+   request_cost > capacity or
+   request_cost == math.huge or
+   request_cost == -math.huge or
+   request_cost ~= request_cost then
+
     return redis.error_reply("Invalid request cost")
+end
+
+-- Calculate required full refill time
+local refill_time = math.ceil(capacity / refill_rate)
+
+-- Reject configurations that exceed supported TTL
+if refill_time > (MAX_TTL - TTL_SAFETY_MARGIN) then
+    return redis.error_reply(
+        "Bucket refill time exceeds maximum supported TTL"
+    )
 end
 
 -- Get authoritative time from Redis
@@ -32,7 +65,8 @@ local redis_time = redis.call("TIME")
 local seconds = tonumber(redis_time[1])
 local microseconds = tonumber(redis_time[2])
 
-local now = (seconds * 1000) + math.floor(microseconds / 1000)
+local now = (seconds * 1000) +
+            math.floor(microseconds / 1000)
 
 -- Read existing bucket state
 local bucket = redis.call(
@@ -45,15 +79,19 @@ local bucket = redis.call(
 local tokens = tonumber(bucket[1])
 local last_refill = tonumber(bucket[2])
 
--- Initialize bucket for a new user
-if tokens == nil then
+-- Initialize bucket for a new user or incomplete state
+if tokens == nil or last_refill == nil then
     tokens = capacity
     last_refill = now
 end
 
--- Calculate refill
-local elapsed_time = math.max(0, now - last_refill)
+-- Calculate elapsed time
+local elapsed_time = math.max(
+    0,
+    now - last_refill
+)
 
+-- Calculate token refill
 local tokens_to_add =
     (elapsed_time / 1000) * refill_rate
 
@@ -91,12 +129,21 @@ redis.call(
     "last_refill_timestamp", last_refill
 )
 
--- Keep inactive buckets for one hour
-redis.call("EXPIRE", key, 3600)
+-- Calculate dynamic expiration
+-- Keep the bucket until it can refill completely,
+-- with a minimum one-hour TTL and a 60-second safety margin.
 
--- Return decision, remaining tokens and retry duration
+local ttl = math.max(
+    MIN_TTL,
+    refill_time + TTL_SAFETY_MARGIN
+)
+
+redis.call("EXPIRE", key, ttl)
+
+-- Return decision, remaining tokens and retry duration.
+-- Return remaining tokens as a string to preserve fractional precision.
 return {
     allowed,
-    tokens,
+    tostring(tokens),
     retry_after
 }

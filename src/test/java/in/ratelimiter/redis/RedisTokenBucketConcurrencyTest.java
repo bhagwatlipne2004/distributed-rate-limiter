@@ -30,7 +30,7 @@ class RedisTokenBucketConcurrencyTest {
         int totalRequests = 100;
         int capacity = 10;
 
-        double refillRate = 0.000001;
+        double refillRate = 0.00001;
 
         String identifier = "CONCURRENT:" + UUID.randomUUID();
         String redisKey = "rate_limit:" + identifier;

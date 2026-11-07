@@ -54,9 +54,11 @@ public class RedisTokenBucket {
             );
         }
 
-        if (capacity <= 0 || refillRate <= 0) {
+        if (capacity <= 0 ||
+                !Double.isFinite(refillRate) ||
+                refillRate <= 0) {
             throw new IllegalArgumentException(
-                    "Capacity and refill rate must be positive"
+                    "Capacity and refill rate must be positive and finite"
             );
         }
 
@@ -86,15 +88,15 @@ public class RedisTokenBucket {
 
             Number allowed = (Number) result.get(0);
 
-            Number remainingTokens =
-                    (Number) result.get(1);
+            double remainingTokens =
+                    Double.parseDouble(result.get(1).toString());
 
             Number retryAfter =
                     (Number) result.get(2);
 
             return new RateLimitResult(
                     allowed.longValue() == 1,
-                    remainingTokens.doubleValue(),
+                    remainingTokens,
                     retryAfter.longValue()
             );
 
